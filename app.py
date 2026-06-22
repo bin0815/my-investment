@@ -2,23 +2,23 @@ import streamlit as st
 import pandas as pd
 import io
 
-@st.cache_data(ttl=600) # 設定快取時效，每 10 分鐘自動重抓一次資料
+@st.cache_data(ttl=600) 
 def load_data():
-    # 填入您公開的 Google Sheets ID
-    sheet_id = "您的GoogleSheetID" 
-    sheet_name = "工作表1" # 確保名稱正確
-    url = f"https://docs.google.com/spreadsheets/d/1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM/edit?usp=sharing
-"
+    # 您的試算表 ID
+    sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
+    sheet_name = "工作表1" # 請確認您的試算表分頁名稱是否為「工作表1」
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     
     df = pd.read_csv(url)
     
-    # 清洗數值欄位
+    # 清洗數值欄位：移除逗號與引號，轉換為數字
     cols_to_clean = ['持有股數', '平均成本', '目前市價', '持倉市值']
     for col in cols_to_clean:
         if col in df.columns:
+            # 轉換前先處理文字格式
             df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '').astype(float)
     return df
-    
+        
 
 # 2. 初始化與處理
 df = load_data()
