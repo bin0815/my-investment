@@ -26,22 +26,6 @@ def load_data():
             
     return df
     
-# 1. 修正 get_price 函數，自動處理代號後綴
-def get_price(ticker):
-    ticker_str = str(ticker)
-    # 針對台股加後綴
-    query = f"{ticker_str}.TW" if not ticker_str.endswith(".TW") else ticker_str
-    try:
-        data = yf.Ticker(query).history(period="1d")
-        if not data.empty:
-            return data['Close'].iloc[-1]
-        return 0 # 若抓不到，回傳 0 以免程式崩潰
-    except:
-        return 0
-
-# 2. 修改主邏輯，確保計算時不會出現 None
-df = load_data()
-
 # 1. 確保現價有值 (優先使用 CSV 裡已有的數值)
 # 假設 CSV 有一欄叫「目前市價」，若現價為 0，則用 CSV 的數值補上
 df['現價'] = df['現價'].replace(0, pd.NA).fillna(df['目前市價'])
@@ -57,7 +41,7 @@ if not df.empty and df['市值'].sum() > 0:
     st.plotly_chart(fig)
 else:
     st.warning("目前暫無有效的市值數據可繪製圖表。")
-    
+   
 
 st.title("📊 個人投資儀表板")
 
