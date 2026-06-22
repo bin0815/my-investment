@@ -41,17 +41,23 @@ def get_price(ticker):
 
 # 2. 修改主邏輯，確保計算時不會出現 None
 df = load_data()
-# 確保代號轉為字串
-df['股票代號'] = df['股票代號'].astype(str)
-df['現價'] = df['股票代號'].apply(get_price)
 
-# 如果市價抓不到，預設補上您 CSV 裡的「目前市價」作為備援
+# 1. 確保現價有值 (優先使用 CSV 裡已有的數值)
+# 假設 CSV 有一欄叫「目前市價」，若現價為 0，則用 CSV 的數值補上
 df['現價'] = df['現價'].replace(0, pd.NA).fillna(df['目前市價'])
 
-# 重新計算
+# 2. 進行計算前，確保所有欄位都是數值
 df['市值'] = df['持有股數'] * df['現價']
 df['損益'] = df['市值'] - (df['持有股數'] * df['平均成本'])
 df['報酬率'] = (df['損益'] / (df['持有股數'] * df['平均成本'])) * 100
+
+# 3. 在繪製圖表前，加入一個判斷，避免空數據導致 NameError
+if not df.empty and df['市值'].sum() > 0:
+    fig = px.pie(df, values='市值', names='股票名稱', title='資產配置比例')
+    st.plotly_chart(fig)
+else:
+    st.warning("目前暫無有效的市值數據可繪製圖表。")
+    
 
 st.title("📊 個人投資儀表板")
 
