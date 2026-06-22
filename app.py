@@ -1,20 +1,27 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
-import plotly.express as px
+import io
 
-st.set_page_config(page_title="投資組合儀表板", layout="wide")
-
-# 1. 載入資料
 @st.cache_data
 def load_data():
-    # 讀取檔案
-    df = pd.read_csv("invest_data.csv", encoding='utf-8-sig')
+    # 1. 以二進位模式開啟檔案，避免任何編碼轉換衝突
+    with open("invest_data.csv", "rb") as f:
+        raw_data = f.read()
     
-    # 清洗數字欄位：移除逗號與引號，轉換為數字
+    # 2. 嘗試用 utf-8-sig 解碼，失敗則改用 big5
+    try:
+        data = raw_data.decode('utf-8-sig')
+    except:
+        data = raw_data.decode('big5')
+    
+    # 3. 使用 StringIO 將數據轉為虛擬檔案，再由 pandas 讀取
+    df = pd.read_csv(io.StringIO(data))
+    
+    # 4. 清洗數字欄位：移除逗號與引號，確保運算正常
     cols_to_clean = ['持有股數', '平均成本', '目前市價', '持倉市值']
     for col in cols_to_clean:
-        if df[col].dtype == 'object':
+        if col in df.columns:
+            # 確保內容為字串後，移除逗號、引號並轉換為浮點數
             df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '').astype(float)
             
     return df
