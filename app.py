@@ -8,18 +8,15 @@ st.set_page_config(page_title="投資組合儀表板", layout="wide")
 # 1. 載入資料
 @st.cache_data
 def load_data():
-# 使用 Python 原生方式讀取檔案內容，解決編碼與格式問題
-    with open("invest_data.csv", "rb") as f:
-        content = f.read()
+    # 讀取檔案
+    df = pd.read_csv("invest_data.csv", encoding='utf-8-sig')
     
-    # 自動偵測編碼 (如果 utf-8-sig 不行，我們嘗試用 big5，這是在處理傳統 Excel 匯出最常遇到的情況)
-    try:
-        decoded_content = content.decode('utf-8-sig')
-    except UnicodeDecodeError:
-        decoded_content = content.decode('big5')
-    
-    # 將解碼後的內容轉換成 DataFrame
-    df = pd.read_csv(io.StringIO(decoded_content))
+    # 清洗數字欄位：移除逗號與引號，轉換為數字
+    cols_to_clean = ['持有股數', '平均成本', '目前市價', '持倉市值']
+    for col in cols_to_clean:
+        if df[col].dtype == 'object':
+            df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '').astype(float)
+            
     return df
     
 # 2. 自動抓取最新價格
