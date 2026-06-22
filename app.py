@@ -7,7 +7,7 @@ import io
 st.set_page_config(page_title="個人投資儀表板", layout="wide")
 
 # 1. 強健的數據讀取函式
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=0)
 def load_data():
     sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
     sheet_name = "工作表1"
