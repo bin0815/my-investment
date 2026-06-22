@@ -26,14 +26,32 @@ def load_data():
             
     return df
     
-# 2. 自動抓取最新價格
+# 1. 修正 get_price 函數，自動處理代號後綴
 def get_price(ticker):
-    ticker_str = f"{ticker}.TW" if str(ticker) != "00973B" else "00973B.TW"
+    ticker_str = str(ticker)
+    # 針對台股加後綴
+    query = f"{ticker_str}.TW" if not ticker_str.endswith(".TW") else ticker_str
     try:
-        data = yf.Ticker(ticker_str).history(period="1d")
-        return data['Close'].iloc[-1]
+        data = yf.Ticker(query).history(period="1d")
+        if not data.empty:
+            return data['Close'].iloc[-1]
+        return 0 # 若抓不到，回傳 0 以免程式崩潰
     except:
-        return None
+        return 0
+
+# 2. 修改主邏輯，確保計算時不會出現 None
+df = load_data()
+# 確保代號轉為字串
+df['股票代號'] = df['股票代號'].astype(str)
+df['現價'] = df['股票代號'].apply(get_price)
+
+# 如果市價抓不到，預設補上您 CSV 裡的「目前市價」作為備援
+df['現價'] = df['現價'].replace(0, pd.NA).fillna(df['目前市價'])
+
+# 重新計算
+df['市值'] = df['持有股數'] * df['現價']
+df['損益'] = df['市值'] - (df['持有股數'] * df['平均成本'])
+df['報酬率'] = (df['損益'] / (df['持有股數'] * df['平均成本'])) * 100
 
 st.title("📊 個人投資儀表板")
 
