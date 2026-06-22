@@ -1,22 +1,16 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
-import plotly.express as px
 import io
 
-st.set_page_config(page_title="個人投資儀表板", layout="wide")
-
-# 1. 載入資料
-@st.cache_data
+@st.cache_data(ttl=600) # 設定快取時效，每 10 分鐘自動重抓一次資料
 def load_data():
-    with open("invest_data.csv", "rb") as f:
-        content = f.read()
-    try:
-        decoded_content = content.decode('utf-8-sig')
-    except:
-        decoded_content = content.decode('big5')
+    # 填入您公開的 Google Sheets ID
+    sheet_id = "您的GoogleSheetID" 
+    sheet_name = "工作表1" # 確保名稱正確
+    url = f"https://docs.google.com/spreadsheets/d/1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM/edit?usp=sharing
+"
     
-    df = pd.read_csv(io.StringIO(decoded_content))
+    df = pd.read_csv(url)
     
     # 清洗數值欄位
     cols_to_clean = ['持有股數', '平均成本', '目前市價', '持倉市值']
@@ -24,6 +18,7 @@ def load_data():
         if col in df.columns:
             df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '').astype(float)
     return df
+    
 
 # 2. 初始化與處理
 df = load_data()
