@@ -1,24 +1,32 @@
 import streamlit as st
 import pandas as pd
+import requests
 import io
 
-@st.cache_data(ttl=600) 
+@st.cache_data(ttl=600)
 def load_data():
-    # 您的試算表 ID
+    # 您的試算表連結
     sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
-    sheet_name = "工作表1" # 請確認您的試算表分頁名稱是否為「工作表1」
+    sheet_name = "工作表1"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     
-    df = pd.read_csv(url)
+    # 1. 使用 requests 強制以 utf-8 獲取內容
+    response = requests.get(url)
+    response.encoding = 'utf-8' # 強制指定編碼
     
-    # 清洗數值欄位：移除逗號與引號，轉換為數字
+    # 2. 將內容轉為 pandas 可讀的格式
+    df = pd.read_csv(io.StringIO(response.text))
+    
+    # 3. 清洗數值欄位 (移除逗號、引號並轉為數字)
     cols_to_clean = ['持有股數', '平均成本', '目前市價', '持倉市值']
     for col in cols_to_clean:
         if col in df.columns:
-            # 轉換前先處理文字格式
+            # 將欄位轉為字串並過濾掉非法字元
             df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '').astype(float)
+            
     return df
-        
+    
+    
 
 # 2. 初始化與處理
 df = load_data()
