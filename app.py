@@ -8,9 +8,20 @@ st.set_page_config(page_title="投資組合儀表板", layout="wide")
 # 1. 載入資料
 @st.cache_data
 def load_data():
-    # 加入 encoding='utf-8-sig' 可以解決大多數 Excel 匯出 CSV 的編碼問題
-    return pd.read_csv("invest_data.csv", encoding='utf-8-sig')
-
+# 使用 Python 原生方式讀取檔案內容，解決編碼與格式問題
+    with open("invest_data.csv", "rb") as f:
+        content = f.read()
+    
+    # 自動偵測編碼 (如果 utf-8-sig 不行，我們嘗試用 big5，這是在處理傳統 Excel 匯出最常遇到的情況)
+    try:
+        decoded_content = content.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        decoded_content = content.decode('big5')
+    
+    # 將解碼後的內容轉換成 DataFrame
+    df = pd.read_csv(io.StringIO(decoded_content))
+    return df
+    
 # 2. 自動抓取最新價格
 def get_price(ticker):
     ticker_str = f"{ticker}.TW" if str(ticker) != "00973B" else "00973B.TW"
