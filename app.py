@@ -81,7 +81,20 @@ with tab2:
     st.subheader("資產成長趨勢")
     try:
         history_data = load_history()
+        
+        # --- 新增：將日期轉為純日期格式 (去除小時分鐘) ---
+        history_data['日期'] = pd.to_datetime(history_data['日期']).dt.strftime('%Y-%m-%d')
+        
+        # 繪圖
         fig_history = px.line(history_data, x='日期', y='總市值', title="總資產市值歷史走勢")
+        
+        # --- 新增：固定 X 軸顯示設定 ---
+        fig_history.update_xaxes(
+            type='category',  # 強制將 X 軸視為類別(日期)，這樣就不會顯示小時
+            tickmode='auto'   # 讓系統自動根據資料量調整顯示密度
+        )
+        
         st.plotly_chart(fig_history, use_container_width=True)
+        
     except Exception as e:
-        st.info("尚無歷史記錄或讀取發生錯誤。請確認 History 分頁資料正確。")
+        st.info("尚無歷史記錄或讀取發生錯誤。")
