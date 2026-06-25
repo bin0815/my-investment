@@ -69,18 +69,21 @@ st.divider()
 st.subheader("📈 資產成長趨勢")
 
 # 讀取 History 分頁資料
-@st.cache_data(ttl=0) # 暫時設為0方便除錯
+@st.cache_data(ttl=0)
 def load_history():
     sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
-    # 注意這裡的 sheet 名稱必須完全對應
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=History"
     df = pd.read_csv(url)
     
-    # 【關鍵除錯】印出欄位名稱，這樣您就能知道程式讀到什麼
-    st.write("讀取到的欄位名稱:", df.columns.tolist())
+    # 1. 強制修正所有欄位名稱的空白，防止「備註 」變成「備註」的格式錯誤
+    df.columns = df.columns.str.strip()
     
-    # 嘗試重新命名，確保名稱對齊
-    df.columns = df.columns.str.strip() # 去除名稱前後空白
+    # 2. 確保日期轉換成功
+    df['日期'] = pd.to_datetime(df['日期'])
+    
+    # 3. 確保數值是數字
+    df['總市值'] = pd.to_numeric(df['總市值'], errors='coerce')
+    
     return df
 
 # 在顯示圖表區修改：
