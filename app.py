@@ -69,18 +69,25 @@ st.divider()
 st.subheader("📈 資產成長趨勢")
 
 # 讀取 History 分頁資料
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=0) # 暫時設為0方便除錯
 def load_history():
     sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
+    # 注意這裡的 sheet 名稱必須完全對應
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=History"
-    df_history = pd.read_csv(url)
-    df_history['日期'] = pd.to_datetime(df_history['日期'])
-    return df_history
+    df = pd.read_csv(url)
+    
+    # 【關鍵除錯】印出欄位名稱，這樣您就能知道程式讀到什麼
+    st.write("讀取到的欄位名稱:", df.columns.tolist())
+    
+    # 嘗試重新命名，確保名稱對齊
+    df.columns = df.columns.str.strip() # 去除名稱前後空白
+    return df
 
-# 顯示歷史趨勢圖
+# 在顯示圖表區修改：
 try:
     history_data = load_history()
+    # 確保這裡的名稱與上面清洗過後的名稱一致
     fig_history = px.line(history_data, x='日期', y='總市值', title="總資產市值歷史走勢")
     st.plotly_chart(fig_history, use_container_width=True)
 except Exception as e:
-    st.info("尚無歷史記錄或讀取發生錯誤。請確認 History 分頁是否有正確填入日期與市值欄位。")
+    st.error(f"讀取失敗，錯誤訊息: {e}")
