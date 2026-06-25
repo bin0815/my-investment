@@ -62,3 +62,25 @@ asset_data = pd.concat([
 ])
 fig = px.pie(asset_data, values='市值', names='項目', title='總資產配置比例')
 st.plotly_chart(fig)
+
+# ... 在 app.py 的最下方加入這段 ...
+
+st.divider()
+st.subheader("📈 資產成長趨勢")
+
+# 讀取 History 分頁資料
+@st.cache_data(ttl=3600)
+def load_history():
+    sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=History"
+    df_history = pd.read_csv(url)
+    df_history['日期'] = pd.to_datetime(df_history['日期'])
+    return df_history
+
+# 顯示歷史趨勢圖
+try:
+    history_data = load_history()
+    fig_history = px.line(history_data, x='日期', y='總市值', title="總資產市值歷史走勢")
+    st.plotly_chart(fig_history, use_container_width=True)
+except Exception as e:
+    st.info("尚無歷史記錄或讀取發生錯誤。請確認 History 分頁是否有正確填入日期與市值欄位。")
