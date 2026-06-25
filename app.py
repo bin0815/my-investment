@@ -86,11 +86,4 @@ def load_history():
     
     return df
 
-# 在顯示圖表區修改：
-try:
-    history_data = load_history()
-    # 確保這裡的名稱與上面清洗過後的名稱一致
-    fig_history = px.line(history_data, x='日期', y='總市值', title="總資產市值歷史走勢")
-    st.plotly_chart(fig_history, use_container_width=True)
-except Exception as e:
-    st.error(f"讀取失敗，錯誤訊息: {e}")
+
