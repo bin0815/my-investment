@@ -6,54 +6,59 @@ import io
 
 st.set_page_config(page_title="個人投資儀表板", layout="wide")
 
-# 1. 強健的數據讀取函式
 @st.cache_data(ttl=0)
 def load_data():
     sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
-    sheet_name = "工作表1"
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=工作表1"
     
     response = requests.get(url)
     response.encoding = 'utf-8'
-    df = pd.read_csv(io.StringIO(response.text))
+    df_raw = pd.read_csv(io.StringIO(response.text))
     
-    # 清除欄位名稱前後的空格
-    df.columns = df.columns.str.strip()
+    # 1. 股票區：我們取前面所有欄位 (假設股票在 A-H 欄)
+    # 我們假設股票資料在左側，並移除整行都是空值的列
+    stocks = df_raw.iloc[:, 0:8].dropna(how='all')
     
-    # 強制將關鍵欄位轉為數字，無法轉換者設為 0
-    cols = ['持有股數', '平均成本', '目前市價', '持倉市值']
-    for col in cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', '').str.replace('"', ''), errors='coerce').fillna(0)
-    return df
+    # 2. 現金區：我們只取 Q 和 R 欄 (Python index 16 和 17)
+    # 假設 Q 為'帳戶', R 為'金額'
+    cash = df_raw.iloc[:, 16:18].dropna(how='all')
+    cash.columns = ['帳戶', '金額'] # 強制重新命名欄位
+    
+    return stocks, cash
 
-# 2. 數據載入與計算
-df = load_data()
+# 載入與計算
+stocks, cash = load_data()
 
-# 計算邏輯 (確保不為空)
-if not df.empty:
-    df['市值'] = df['持有股數'] * df['目前市價']
-    df['損益'] = df['市值'] - (df['持有股數'] * df['平均成本'])
+# 清理數值欄位 (移除逗號並轉數值)
+for col in ['持有股數', '平均成本', '目前市價']:
+    if col in stocks.columns:
+        stocks[col] = pd.to_numeric(stocks[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
 
-# 3. 介面顯示
+stocks['市值'] = stocks['持有股數'] * stocks['目前市價']
+stocks['損益'] = stocks['市值'] - (stocks['持有股數'] * stocks['平均成本'])
+
+# 現金處理
+cash['金額'] = pd.to_numeric(cash['金額'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+
+total_stock_value = stocks['市值'].sum()
+total_cash = cash['金額'].sum()
+
+# 介面顯示
 st.title("📊 個人投資儀表板")
+col1, col2, col3 = st.columns(3)
+col1.metric("股票總市值", f"NT$ {total_stock_value:,.0f}")
+col2.metric("現金水位", f"NT$ {total_cash:,.0f}")
+col3.metric("總資產", f"NT$ {total_stock_value + total_cash:,.0f}")
 
-# 帳戶篩選
-accounts = ["全部"] + list(df['券商'].unique())
-account = st.selectbox("選擇帳戶", accounts)
-view_df = df if account == "全部" else df[df['券商'] == account]
+st.divider()
+st.dataframe(stocks)
+st.subheader("現金部位")
+st.dataframe(cash)
 
-# 顯示指標
-col1, col2 = st.columns(2)
-col1.metric("總市值", f"NT$ {view_df['市值'].sum():,.0f}")
-col2.metric("總損益", f"NT$ {view_df['損益'].sum():,.0f}")
-
-# 顯示表格
-st.dataframe(view_df[['股票名稱', '持有股數', '目前市價', '平均成本', '市值', '報酬率']])
-
-# 4. 圖表繪製 (增加防呆機制)
-if not view_df.empty and '市值' in view_df.columns and view_df['市值'].sum() > 0:
-    fig = px.pie(view_df, values='市值', names='股票名稱', title='資產配置比例')
-    st.plotly_chart(fig)
-else:
-    st.info("目前選擇的數據不足以顯示圓餅圖。")
+# 圓餅圖：合併顯示
+asset_data = pd.concat([
+    stocks[['股票名稱', '市值']].rename(columns={'股票名稱': '項目'}),
+    cash.rename(columns={'帳戶': '項目', '金額': '市值'})
+])
+fig = px.pie(asset_data, values='市值', names='項目', title='總資產配置比例')
+st.plotly_chart(fig)
