@@ -65,9 +65,18 @@ tab1, tab2 = st.tabs(["持倉明細", "資產趨勢"])
 
 with tab1:
     st.subheader("股票持倉")
-    st.dataframe(stocks)
+    
+    # 確保「損益」欄位確實存在且為數值
+    # 如果顯示有 NaN，代表前置計算有問題，這裡我們給它填補 0
+    stocks['損益'] = stocks['損益'].fillna(0)
+    
+    # 顯示 dataframe，您可以指定只顯示想看的欄位，讓介面更乾淨
+    display_cols = ['股票名稱', '持有股數', '平均成本', '目前市價', '市值', '損益']
+    st.dataframe(stocks[display_cols], use_container_width=True)
+    
     st.subheader("現金部位")
-    st.dataframe(cash)
+    st.dataframe(cash, use_container_width=True)
+
     
     # 圓餅圖
     asset_data = pd.concat([
