@@ -30,7 +30,7 @@ def load_history():
     sheet_id = "1WSjgIJLVe1G1pamo9EhjngxTfRJVvFbLowi4aJ-4kDM"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=History"
     df = pd.read_csv(url)
-    df.columns = df.columns.str.strip() # 清理標題空白
+    df.columns = df.columns.str.strip() 
     df['日期'] = pd.to_datetime(df['日期'])
     df['總市值'] = pd.to_numeric(df['總市值'], errors='coerce')
     return df
@@ -49,14 +49,17 @@ cash['金額'] = pd.to_numeric(cash['金額'].astype(str).str.replace(',', ''), 
 
 total_stock_value = stocks['市值'].sum()
 total_cash = cash['金額'].sum()
+total_gain_loss = stocks['損益'].sum() # 計算總損益
 
 # 3. 介面顯示
 st.title("📊 個人投資儀表板")
 
-col1, col2, col3 = st.columns(3)
+# 四欄位佈局
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("股票總市值", f"NT$ {total_stock_value:,.0f}")
 col2.metric("現金水位", f"NT$ {total_cash:,.0f}")
-col3.metric("總資產", f"NT$ {total_stock_value + total_cash:,.0f}")
+col3.metric("總損益", f"NT$ {total_gain_loss:,.0f}")
+col4.metric("總資產", f"NT$ {total_stock_value + total_cash:,.0f}")
 
 st.divider()
 
@@ -65,20 +68,12 @@ tab1, tab2 = st.tabs(["持倉明細", "資產趨勢"])
 
 with tab1:
     st.subheader("股票持倉")
-    
-    # 確保「損益」欄位確實存在且為數值
-    # 如果顯示有 NaN，代表前置計算有問題，這裡我們給它填補 0
-    stocks['損益'] = stocks['損益'].fillna(0)
-    
-    # 顯示 dataframe，您可以指定只顯示想看的欄位，讓介面更乾淨
     display_cols = ['股票名稱', '持有股數', '平均成本', '目前市價', '市值', '損益']
     st.dataframe(stocks[display_cols], use_container_width=True)
     
     st.subheader("現金部位")
     st.dataframe(cash, use_container_width=True)
-
     
-    # 圓餅圖
     asset_data = pd.concat([
         stocks[['股票名稱', '市值']].rename(columns={'股票名稱': '項目'}),
         cash.rename(columns={'帳戶': '項目', '金額': '市值'})
@@ -90,20 +85,9 @@ with tab2:
     st.subheader("資產成長趨勢")
     try:
         history_data = load_history()
-        
-        # --- 新增：將日期轉為純日期格式 (去除小時分鐘) ---
         history_data['日期'] = pd.to_datetime(history_data['日期']).dt.strftime('%Y-%m-%d')
-        
-        # 繪圖
         fig_history = px.line(history_data, x='日期', y='總市值', title="總資產市值歷史走勢")
-        
-        # --- 新增：固定 X 軸顯示設定 ---
-        fig_history.update_xaxes(
-            type='category',  # 強制將 X 軸視為類別(日期)，這樣就不會顯示小時
-            tickmode='auto'   # 讓系統自動根據資料量調整顯示密度
-        )
-        
+        fig_history.update_xaxes(type='category', tickmode='auto')
         st.plotly_chart(fig_history, use_container_width=True)
-        
     except Exception as e:
         st.info("尚無歷史記錄或讀取發生錯誤。")
