@@ -35,7 +35,7 @@ def load_history():
     df['總市值'] = pd.to_numeric(df['總市值'], errors='coerce')
     return df
 
-# 2. 資料載入與計算
+# 2. 資料載入與計算 (此段請替換原有的計算部分)
 stocks, cash = load_data()
 
 # 股票欄位清理
@@ -43,13 +43,23 @@ for col in ['持有股數', '平均成本', '目前市價']:
     if col in stocks.columns:
         stocks[col] = pd.to_numeric(stocks[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
 
+# 計算市值與損益
 stocks['市值'] = stocks['持有股數'] * stocks['目前市價']
-stocks['損益'] = stocks['市值'] - (stocks['持有股數'] * stocks['平均成本'])
+stocks['成本'] = stocks['持有股數'] * stocks['平均成本']
+stocks['損益'] = stocks['市值'] - stocks['成本']
+
+# 現金處理
 cash['金額'] = pd.to_numeric(cash['金額'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
 
+# 計算總計數值
 total_stock_value = stocks['市值'].sum()
+total_cost = stocks['成本'].sum()
 total_cash = cash['金額'].sum()
-total_gain_loss = stocks['損益'].sum() # 計算總損益
+total_gain_loss = stocks['損益'].sum()
+
+# 【新增】計算總報酬率 (%)
+# 若總成本為0，則報酬率為0
+total_roi = (total_gain_loss / total_cost * 100) if total_cost != 0 else 0
 
 # 3. 介面顯示
 st.title("📊 個人投資儀表板")
@@ -58,11 +68,9 @@ st.title("📊 個人投資儀表板")
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("股票總市值", f"NT$ {total_stock_value:,.0f}")
 col2.metric("現金水位", f"NT$ {total_cash:,.0f}")
-col3.metric("總損益", f"NT$ {total_gain_loss:,.0f}")
+# 在總損益指標後方加上報酬率百分比
+col3.metric("總損益", f"NT$ {total_gain_loss:,.0f}", f"{total_roi:.2f}%") 
 col4.metric("總資產", f"NT$ {total_stock_value + total_cash:,.0f}")
-
-st.divider()
-
 # 表格區
 tab1, tab2 = st.tabs(["持倉明細", "資產趨勢"])
 
